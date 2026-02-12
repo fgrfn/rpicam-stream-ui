@@ -223,37 +223,6 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Schärfe (0.0 - 2.0)</label>
-                        <input type="number" name="sharpness" step="0.1" min="0.0" max="2.0" value="{{ config.sharpness }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Kontrast (0.0 - 2.0)</label>
-                        <input type="number" name="contrast" step="0.1" min="0.0" max="2.0" value="{{ config.contrast }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Helligkeit (-1.0 - 1.0)</label>
-                        <input type="number" name="brightness" step="0.1" min="-1.0" max="1.0" value="{{ config.brightness }}">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Sättigung (0.0 - 2.0)</label>
-                        <input type="number" name="saturation" step="0.1" min="0.0" max="2.0" value="{{ config.saturation }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Belichtung</label>
-                        <select name="exposure">
-                            <option value="auto" {{ 'selected' if config.exposure == 'auto' }}>auto</option>
-                            <option value="normal" {{ 'selected' if config.exposure == 'normal' }}>normal</option>
-                            <option value="short" {{ 'selected' if config.exposure == 'short' }}>short</option>
-                            <option value="long" {{ 'selected' if config.exposure == 'long' }}>long</option>
-                        </select>
-                    </div>
-                </div>
-
-                </div>
                 <div style="margin-top: 20px;">
                     <button type="button" class="btn btn-primary" onclick="saveConfig()">💾 Konfiguration Speichern</button>
                 </div>

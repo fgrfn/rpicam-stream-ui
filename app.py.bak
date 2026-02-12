@@ -27,12 +27,7 @@ default_config = {
     "rtsp_host": "",
     "rtsp_port": 8554,
     "rtsp_path": "kali1080",
-    "nice": -11,
-    "sharpness": 1.0,
-    "contrast": 1.0,
-    "brightness": 0.0,
-    "saturation": 1.0,
-    "exposure": "auto"
+    "nice": -11
 }
 
 def get_lan_ip():
@@ -191,10 +186,6 @@ def update_config():
     for field in ['bitrate', 'framerate', 'width', 'height', 'intra', 'av_sync', 'rtsp_port', 'nice']:
         if field in new_config:
             config[field] = int(new_config[field])
-    
-    for field in ['sharpness', 'contrast', 'brightness', 'saturation']:
-        if field in new_config:
-            config[field] = float(new_config[field])
     
     for field in ['denoise', 'codec', 'libav_format', 'profile', 'hdr', 'level', 'awb', 'rtsp_host', 'rtsp_path']:
         if field in new_config:

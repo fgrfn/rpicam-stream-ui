@@ -4,7 +4,7 @@
   "codec": "libav",
   "libav_format": "mpegts",
   "profile": "high",
-  "hdr": "off",
+  "hdr": "auto",
   "level": "4.1",
   "framerate": 30,
   "width": 1920,
@@ -15,5 +15,10 @@
   "rtsp_host": "10.10.10.175",
   "rtsp_port": 8554,
   "rtsp_path": "kali1080",
-  "nice": -11
+  "nice": -11,
+  "sharpness": 1.0,
+  "contrast": 1.0,
+  "brightness": 0.0,
+  "saturation": 1.0,
+  "exposure": "auto"
 }
