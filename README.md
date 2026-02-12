@@ -2,6 +2,8 @@
 
 Web-Interface zur Steuerung des Raspberry Pi Kamera RTSP Streams mit System-Monitoring.
 
+Basierend auf: [raspberrypi-camera-stream](https://github.com/spookyfirehorse/raspberrypi-camera-stream) von [spookyfirehorse](https://github.com/spookyfirehorse) - Erweitert mit Web-UI, System-Monitoring und automatischer Konfiguration.
+
 ## Features
 
 - 📡 **RTSP Stream Control** - Start/Stop/Restart direkt aus dem Browser
@@ -10,6 +12,16 @@ Web-Interface zur Steuerung des Raspberry Pi Kamera RTSP Streams mit System-Moni
 - 🔄 **Pi Neustart** - Remote Reboot über Webinterface
 - 🌐 **Auto LAN-IP** - Automatische Erkennung der aktuellen IP-Adresse
 - 💾 **Config-Speicherung** - Einstellungen werden persistent gespeichert
+
+## Unterschiede zum Original
+
+Dieses Projekt erweitert [raspberrypi-camera-stream](https://github.com/spookyfirehorse/raspberrypi-camera-stream) um:
+
+- 🖥️ **Web-basierte Steuerung** - Keine SSH/Terminal Befehle mehr nötig
+- 📈 **Live System-Stats** - Echtzeit-Monitoring aller CPU-Kerne, RAM und Temperatur
+- ⚙️ **Konfigurations-Interface** - Alle Parameter per Klick anpassbar
+- 🔄 **Remote Reboot** - Pi neu starten ohne physischen Zugriff
+- 📱 **Responsive Design** - Funktioniert auf Desktop, Tablet und Smartphone
 
 ## Voraussetzungen
 
