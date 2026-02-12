@@ -32,7 +32,7 @@ default_config = {
     "contrast": 1.0,
     "brightness": 0.0,
     "saturation": 1.0,
-    "exposure": "auto"
+    "exposure": "normal"
 }
 
 def get_lan_ip():

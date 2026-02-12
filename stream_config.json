@@ -16,9 +16,9 @@
   "rtsp_port": 8554,
   "rtsp_path": "kali1080",
   "nice": -11,
-  "sharpness": 1.0,
+  "sharpness": 2.0,
   "contrast": 1.0,
   "brightness": 0.0,
   "saturation": 1.0,
-  "exposure": "auto"
+  "exposure": "normal"
 }
