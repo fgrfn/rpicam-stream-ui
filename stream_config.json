@@ -1,0 +1,19 @@
+{
+  "bitrate": 6000000,
+  "denoise": "auto",
+  "codec": "libav",
+  "libav_format": "mpegts",
+  "profile": "high",
+  "hdr": "off",
+  "level": "4.1",
+  "framerate": 30,
+  "width": 1920,
+  "height": 1080,
+  "intra": 15,
+  "av_sync": 0,
+  "awb": "indoor",
+  "rtsp_host": "10.10.10.175",
+  "rtsp_port": 8554,
+  "rtsp_path": "kali1080",
+  "nice": -11
+}

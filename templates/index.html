@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Stream Control</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e; color: #eee; padding: 20px; line-height: 1.6;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #4ecca3; margin-bottom: 10px; }
+        .subtitle { color: #888; margin-bottom: 30px; }
+        .card {
+            background: #16213e; border-radius: 12px; padding: 20px;
+            margin-bottom: 20px; border: 1px solid #0f3460;
+        }
+        .card h2 { color: #e94560; margin-bottom: 15px; font-size: 1.2em; }
+        .rtsp-box {
+            background: #0f3460; padding: 15px; border-radius: 8px;
+            font-family: 'Courier New', monospace; font-size: 1.1em;
+            color: #4ecca3; word-break: break-all; cursor: pointer;
+        }
+        .rtsp-box:hover { background: #1a4a7a; }
+        .rtsp-label { color: #888; font-size: 0.9em; margin-bottom: 8px; }
+        .form-row {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-bottom: 15px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label {
+            color: #aaa; font-size: 0.85em; margin-bottom: 5px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .form-group input, .form-group select {
+            padding: 10px; border: 1px solid #0f3460; border-radius: 6px;
+            background: #0f3460; color: #fff; font-size: 1em;
+        }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 6px;
+            font-size: 1em; cursor: pointer; margin-right: 10px; margin-bottom: 10px;
+        }
+        .btn-primary { background: #4ecca3; color: #1a1a2e; }
+        .btn-danger { background: #e94560; color: #fff; }
+        .btn-secondary { background: #0f3460; color: #fff; }
+        .btn-dark { background: #555; color: #fff; }
+        .status {
+            display: inline-block; padding: 5px 12px; border-radius: 20px;
+            font-size: 0.85em; font-weight: bold;
+        }
+        .status.running { background: #4ecca3; color: #1a1a2e; }
+        .status.stopped { background: #e94560; color: #fff; }
+        .info-text { color: #888; font-size: 0.9em; margin-top: 10px; }
+        .stats-row {
+            display: flex; gap: 15px; margin: 15px 0;
+        }
+        .stat-box {
+            background: #0f3460; padding: 10px 20px; border-radius: 8px;
+            text-align: center; flex: 1;
+        }
+        .stat-label {
+            display: block; color: #888; font-size: 0.8em; text-transform: uppercase;
+        }
+        .stat-value {
+            display: block; color: #4ecca3; font-size: 1.5em; font-weight: bold;
+        }
+        .cpu-cores {
+            display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+        }
+        .core-box {
+            background: #0f3460; padding: 5px 10px; border-radius: 6px;
+            text-align: center; min-width: 60px;
+        }
+        .core-label {
+            display: block; color: #888; font-size: 0.7em;
+        }
+        .core-value {
+            display: block; color: #4ecca3; font-size: 0.9em; font-weight: bold;
+        }
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; padding: 15px 20px;
+            border-radius: 8px; color: #fff; font-weight: bold;
+            opacity: 0; transition: opacity 0.3s; z-index: 1000;
+        }
+        .toast.show { opacity: 1; }
+        .toast.success { background: #4ecca3; color: #1a1a2e; }
+        .toast.error { background: #e94560; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Pi Stream Control</h1>
+        <p class="subtitle">RTSP Stream Konfiguration</p>
+        
+        <div class="card">
+            <h2>📡 Stream Status</h2>
+            <p>Status: <span id="status" class="status {{ 'running' if running else 'stopped' }}">{{ 'LÄUFT' if running else 'GESTOPPT' }}</span></p>
+            <div class="stats-row">
+                <div class="stat-box">
+                    <span class="stat-label">CPU</span>
+                    <span class="stat-value" id="cpuStat">{{ stats.cpu_percent }}%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">RAM</span>
+                    <span class="stat-value" id="ramStat">{{ stats.ram_percent }}%</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Temp</span>
+                    <span class="stat-value" id="tempStat">{{ stats.temperature }}°C</span>
+                </div>
+            </div>
+            <div class="cpu-cores" id="cpuCores">
+                {% for core in stats.cpu_cores %}
+                <div class="core-box">
+                    <span class="core-label">Kern {{ loop.index }}</span>
+                    <span class="core-value" id="core{{ loop.index }}">{{ core }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 15px;">
+                <button class="btn btn-primary" onclick="startStream()">▶ Start</button>
+                <button class="btn btn-danger" onclick="stopStream()">⏹ Stop</button>
+                <button class="btn btn-secondary" onclick="restartStream()">🔄 Neustart</button>
+                <button class="btn btn-dark" onclick="rebootSystem()" style="margin-left: 20px;">🔌 Pi Neustarten</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🔗 RTSP Stream URL</h2>
+            <p class="rtsp-label">Klicken zum Kopieren:</p>
+            <div class="rtsp-box" onclick="copyToClipboard('{{ rtsp_url }}')" id="rtspUrl">{{ rtsp_url }}</div>
+            <p class="info-text">Verwende diese URL in VLC, OBS, oder anderen RTSP-fähigen Playern.</p>
+        </div>
+
+        <div class="card">
+            <h2>⚙️ Kamera Einstellungen</h2>
+            <form id="configForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Breite (px)</label>
+                        <input type="number" name="width" value="{{ config.width }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Höhe (px)</label>
+                        <input type="number" name="height" value="{{ config.height }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Framerate (fps)</label>
+                        <input type="number" name="framerate" value="{{ config.framerate }}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Bitrate (bps)</label>
+                        <input type="number" name="bitrate" value="{{ config.bitrate }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Intra-Frame Intervall</label>
+                        <input type="number" name="intra" value="{{ config.intra }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Nice-Wert</label>
+                        <input type="number" name="nice" value="{{ config.nice }}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Codec</label>
+                        <select name="codec">
+                            <option value="libav" {{ 'selected' if config.codec == 'libav' }}>libav</option>
+                            <option value="h264" {{ 'selected' if config.codec == 'h264' }}>h264</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Profil</label>
+                        <select name="profile">
+                            <option value="baseline" {{ 'selected' if config.profile == 'baseline' }}>baseline</option>
+                            <option value="main" {{ 'selected' if config.profile == 'main' }}>main</option>
+                            <option value="high" {{ 'selected' if config.profile == 'high' }}>high</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Level</label>
+                        <select name="level">
+                            <option value="3.0" {{ 'selected' if config.level == '3.0' }}>3.0</option>
+                            <option value="3.1" {{ 'selected' if config.level == '3.1' }}>3.1</option>
+                            <option value="4.0" {{ 'selected' if config.level == '4.0' }}>4.0</option>
+                            <option value="4.1" {{ 'selected' if config.level == '4.1' }}>4.1</option>
+                            <option value="4.2" {{ 'selected' if config.level == '4.2' }}>4.2</option>
+                            <option value="5.0" {{ 'selected' if config.level == '5.0' }}>5.0</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>White Balance</label>
+                        <select name="awb">
+                            <option value="auto" {{ 'selected' if config.awb == 'auto' }}>auto</option>
+                            <option value="indoor" {{ 'selected' if config.awb == 'indoor' }}>indoor</option>
+                            <option value="outdoor" {{ 'selected' if config.awb == 'outdoor' }}>outdoor</option>
+                            <option value="fluorescent" {{ 'selected' if config.awb == 'fluorescent' }}>fluorescent</option>
+                            <option value="incandescent" {{ 'selected' if config.awb == 'incandescent' }}>incandescent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Denoise</label>
+                        <select name="denoise">
+                            <option value="off" {{ 'selected' if config.denoise == 'off' }}>off</option>
+                            <option value="auto" {{ 'selected' if config.denoise == 'auto' }}>auto</option>
+                            <option value="cdn_off" {{ 'selected' if config.denoise == 'cdn_off' }}>cdn_off</option>
+                            <option value="cdn_fast" {{ 'selected' if config.denoise == 'cdn_fast' }}>cdn_fast</option>
+                            <option value="cdn_hq" {{ 'selected' if config.denoise == 'cdn_hq' }}>cdn_hq</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>HDR</label>
+                        <select name="hdr">
+                            <option value="off" {{ 'selected' if config.hdr == 'off' }}>off</option>
+                            <option value="auto" {{ 'selected' if config.hdr == 'auto' }}>auto</option>
+                            <option value="sensor" {{ 'selected' if config.hdr == 'sensor' }}>sensor</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button type="button" class="btn btn-primary" onclick="saveConfig()">💾 Konfiguration Speichern</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>🌐 Netzwerk Einstellungen</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>RTSP Host</label>
+                    <input type="text" id="rtspHost" value="{{ config.rtsp_host }}" onchange="updateRtspUrl()">
+                </div>
+                <div class="form-group">
+                    <label>RTSP Port</label>
+                    <input type="number" id="rtspPort" value="{{ config.rtsp_port }}" onchange="updateRtspUrl()">
+                </div>
+                <div class="form-group">
+                    <label>RTSP Pfad</label>
+                    <input type="text" id="rtspPath" value="{{ config.rtsp_path }}" onchange="updateRtspUrl()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => showToast('URL kopiert!'));
+        }
+
+        function updateRtspUrl() {
+            const host = document.getElementById('rtspHost').value;
+            const port = document.getElementById('rtspPort').value;
+            const path = document.getElementById('rtspPath').value;
+            document.getElementById('rtspUrl').textContent = `rtsp://${host}:${port}/${path}`;
+        }
+
+        function getFormData() {
+            const form = document.getElementById('configForm');
+            const data = {};
+            form.querySelectorAll('input, select').forEach(input => {
+                data[input.name] = input.type === 'number' ? parseInt(input.value) : input.value;
+            });
+            data.rtsp_host = document.getElementById('rtspHost').value;
+            data.rtsp_port = parseInt(document.getElementById('rtspPort').value);
+            data.rtsp_path = document.getElementById('rtspPath').value;
+            return data;
+        }
+
+        async function saveConfig() {
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(getFormData())
+                });
+                if (res.ok) {
+                    showToast('Konfiguration gespeichert!');
+                    updateRtspUrl();
+                } else showToast('Fehler beim Speichern', 'error');
+            } catch (e) { showToast('Netzwerkfehler', 'error'); }
+        }
+
+        async function startStream() {
+            try {
+                const res = await fetch('/api/stream/start', { method: 'POST' });
+                if (res.ok) { showToast('Stream gestartet!'); refreshStatus(); }
+                else showToast('Fehler beim Starten', 'error');
+            } catch (e) { showToast('Netzwerkfehler', 'error'); }
+        }
+
+        async function stopStream() {
+            try {
+                const res = await fetch('/api/stream/stop', { method: 'POST' });
+                if (res.ok) { showToast('Stream gestoppt!'); refreshStatus(); }
+                else showToast('Fehler beim Stoppen', 'error');
+            } catch (e) { showToast('Netzwerkfehler', 'error'); }
+        }
+
+        async function restartStream() {
+            try {
+                const res = await fetch('/api/stream/restart', { method: 'POST' });
+                if (res.ok) { showToast('Stream neu gestartet!'); refreshStatus(); }
+                else showToast('Fehler beim Neustart', 'error');
+            } catch (e) { showToast('Netzwerkfehler', 'error'); }
+        }
+
+        async function rebootSystem() {
+            if (!confirm('Raspberry Pi wirklich neu starten?')) return;
+            try {
+                const res = await fetch('/api/system/reboot', { method: 'POST' });
+                if (res.ok) {
+                    showToast('System wird neu gestartet...');
+                    setTimeout(() => location.reload(), 30000);
+                } else showToast('Fehler beim Neustart', 'error');
+            } catch (e) { showToast('Netzwerkfehler', 'error'); }
+        }
+
+        async function refreshStatus() {
+            try {
+                const res = await fetch('/api/stream/status');
+                const data = await res.json();
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = data.running ? 'LÄUFT' : 'GESTOPPT';
+                statusEl.className = `status ${data.running ? 'running' : 'stopped'}`;
+            } catch (e) { showToast('Status konnte nicht abgerufen werden', 'error'); }
+        }
+
+        async function refreshStats() {
+            try {
+                const res = await fetch('/api/system/stats');
+                const data = await res.json();
+                document.getElementById('cpuStat').textContent = data.cpu_percent + '%';
+                document.getElementById('ramStat').textContent = data.ram_percent + '%';
+                document.getElementById('tempStat').textContent = data.temperature + '°C';
+                
+                // Update individual cores
+                if (data.cpu_cores) {
+                    data.cpu_cores.forEach((core, index) => {
+                        const coreEl = document.getElementById('core' + (index + 1));
+                        if (coreEl) coreEl.textContent = core + '%';
+                    });
+                }
+            } catch (e) { console.log('Stats error', e); }
+        }
+
+        setInterval(refreshStatus, 5000);
+        setInterval(refreshStats, 3000);
+        refreshStats();
+    </script>
+</body>
+</html>
