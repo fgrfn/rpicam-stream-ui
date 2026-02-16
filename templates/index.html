@@ -53,6 +53,9 @@
         .status.running { background: #4ecca3; color: #1a1a2e; }
         .status.stopped { background: #e94560; color: #fff; }
         .info-text { color: #888; font-size: 0.9em; margin-top: 10px; }
+        .preset-row {
+            display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-bottom: 16px;
+        }
         .stats-row {
             display: flex; gap: 15px; margin: 15px 0;
         }
@@ -136,6 +139,15 @@
 
         <div class="card">
             <h2>⚙️ Kamera Einstellungen</h2>
+            <div class="preset-row">
+                <select id="presetSelect">
+                    {% for key, preset in presets.items() %}
+                    <option value="{{ key }}">{{ preset.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="btn btn-secondary" onclick="applyPreset()">Preset laden</button>
+            </div>
+            <p class="info-text" style="margin-top:-6px;margin-bottom:14px;">Preset lädt empfohlene Werte in das Formular. Danach speichern und Stream neu starten.</p>
             <form id="configForm">
                 <div class="form-row">
                     <div class="form-group">
@@ -197,7 +209,7 @@
                     <div class="form-group">
                         <label>White Balance</label>
                         <select name="awb">
-                            <option value="normal" {{ 'selected' if config.awb == 'normal' }}>auto</option>
+                            <option value="auto" {{ 'selected' if config.awb == 'auto' }}>auto</option>
                             <option value="indoor" {{ 'selected' if config.awb == 'indoor' }}>indoor</option>
                             <option value="outdoor" {{ 'selected' if config.awb == 'outdoor' }}>outdoor</option>
                             <option value="fluorescent" {{ 'selected' if config.awb == 'fluorescent' }}>fluorescent</option>
@@ -208,7 +220,7 @@
                         <label>Denoise</label>
                         <select name="denoise">
                             <option value="off" {{ 'selected' if config.denoise == 'off' }}>off</option>
-                            <option value="normal" {{ 'selected' if config.denoise == 'normal' }}>auto</option>
+                            <option value="auto" {{ 'selected' if config.denoise == 'auto' }}>auto</option>
                             <option value="cdn_off" {{ 'selected' if config.denoise == 'cdn_off' }}>cdn_off</option>
                             <option value="cdn_fast" {{ 'selected' if config.denoise == 'cdn_fast' }}>cdn_fast</option>
                             <option value="cdn_hq" {{ 'selected' if config.denoise == 'cdn_hq' }}>cdn_hq</option>
@@ -218,41 +230,10 @@
                         <label>HDR</label>
                         <select name="hdr">
                             <option value="off" {{ 'selected' if config.hdr == 'off' }}>off</option>
-                            <option value="normal" {{ 'selected' if config.hdr == 'normal' }}>auto</option>
+                            <option value="auto" {{ 'selected' if config.hdr == 'auto' }}>auto</option>
                             <option value="sensor" {{ 'selected' if config.hdr == 'sensor' }}>sensor</option>
                         </select>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Schärfe (0.0 - 2.0)</label>
-                        <input type="number" name="sharpness" step="0.1" min="0.0" max="2.0" value="{{ config.sharpness }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Kontrast (0.0 - 2.0)</label>
-                        <input type="number" name="contrast" step="0.1" min="0.0" max="2.0" value="{{ config.contrast }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Helligkeit (-1.0 - 1.0)</label>
-                        <input type="number" name="brightness" step="0.1" min="-1.0" max="1.0" value="{{ config.brightness }}">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Sättigung (0.0 - 2.0)</label>
-                        <input type="number" name="saturation" step="0.1" min="0.0" max="2.0" value="{{ config.saturation }}">
-                    </div>
-                    <div class="form-group">
-                        <label>Belichtung</label>
-                        <select name="exposure">
-                            <option value="normal" {{ 'selected' if config.exposure == 'normal' }}>auto</option>
-                            <option value="normal" {{ 'selected' if config.exposure == 'normal' }}>normal</option>
-                            <option value="short" {{ 'selected' if config.exposure == 'short' }}>short</option>
-                            <option value="long" {{ 'selected' if config.exposure == 'long' }}>long</option>
-                        </select>
-                    </div>
-                </div>
-
                 </div>
                 <div style="margin-top: 20px;">
                     <button type="button" class="btn btn-primary" onclick="saveConfig()">💾 Konfiguration Speichern</button>
@@ -282,6 +263,8 @@
     <div id="toast" class="toast"></div>
 
     <script>
+        const PRESETS = {{ presets|tojson }};
+
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
@@ -310,6 +293,20 @@
             data.rtsp_port = parseInt(document.getElementById('rtspPort').value);
             data.rtsp_path = document.getElementById('rtspPath').value;
             return data;
+        }
+
+        function applyPreset() {
+            const key = document.getElementById('presetSelect').value;
+            const preset = PRESETS[key];
+            if (!preset || !preset.config) {
+                showToast('Preset nicht gefunden', 'error');
+                return;
+            }
+            Object.entries(preset.config).forEach(([field, value]) => {
+                const el = document.querySelector(`#configForm [name="${field}"]`);
+                if (el) el.value = value;
+            });
+            showToast(`Preset geladen: ${preset.name}`);
         }
 
         async function saveConfig() {

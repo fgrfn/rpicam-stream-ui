@@ -27,12 +27,67 @@ default_config = {
     "rtsp_host": "",
     "rtsp_port": 8554,
     "rtsp_path": "kali1080",
-    "nice": -11,
-    "sharpness": 1.0,
-    "contrast": 1.0,
-    "brightness": 0.0,
-    "saturation": 1.0,
-    "exposure": "normal"
+    "nice": -11
+}
+
+# Quick presets for common scenarios
+STREAM_PRESETS = {
+    "default": {
+        "name": "Default (1080p)",
+        "config": {
+            "width": 1920,
+            "height": 1080,
+            "framerate": 30,
+            "bitrate": 6000000,
+            "intra": 15,
+            "denoise": "auto",
+            "awb": "indoor",
+            "hdr": "off",
+            "nice": -11
+        }
+    },
+    "print_day": {
+        "name": "3D Print Day (klar + stabil)",
+        "config": {
+            "width": 1280,
+            "height": 720,
+            "framerate": 25,
+            "bitrate": 10000000,
+            "intra": 10,
+            "denoise": "cdn_fast",
+            "awb": "auto",
+            "hdr": "off",
+            "nice": -8
+        }
+    },
+    "print_night": {
+        "name": "3D Print Night (low-light)",
+        "config": {
+            "width": 1280,
+            "height": 720,
+            "framerate": 20,
+            "bitrate": 12000000,
+            "intra": 10,
+            "denoise": "cdn_hq",
+            "awb": "auto",
+            "hdr": "off",
+            "nice": -8
+        }
+    },
+    "motion": {
+        "name": "Fast Motion (weniger Artefakte)",
+        "config": {
+            "width": 1280,
+            "height": 720,
+            "framerate": 30,
+            "bitrate": 14000000,
+            "intra": 8,
+            "denoise": "cdn_fast",
+            "awb": "auto",
+            "hdr": "off",
+            "nice": -10
+        }
+    }
 }
 
 def get_lan_ip():
@@ -177,7 +232,15 @@ def index():
     running = is_stream_running()
     stats = get_system_stats()
     current_ip = get_lan_ip()
-    return render_template('index.html', config=config, rtsp_url=rtsp_url, running=running, stats=stats, current_ip=current_ip)
+    return render_template(
+        'index.html',
+        config=config,
+        rtsp_url=rtsp_url,
+        running=running,
+        stats=stats,
+        current_ip=current_ip,
+        presets=STREAM_PRESETS,
+    )
 
 @app.route('/api/config', methods=['GET'])
 def get_config():
@@ -187,21 +250,21 @@ def get_config():
 def update_config():
     config = load_config()
     new_config = request.json
-    
+
     for field in ['bitrate', 'framerate', 'width', 'height', 'intra', 'av_sync', 'rtsp_port', 'nice']:
         if field in new_config:
             config[field] = int(new_config[field])
-    
-    for field in ['sharpness', 'contrast', 'brightness', 'saturation']:
-        if field in new_config:
-            config[field] = float(new_config[field])
-    
+
     for field in ['denoise', 'codec', 'libav_format', 'profile', 'hdr', 'level', 'awb', 'rtsp_host', 'rtsp_path']:
         if field in new_config:
             config[field] = new_config[field]
-    
+
     save_config(config)
     return jsonify({"status": "ok", "config": config})
+
+@app.route('/api/presets', methods=['GET'])
+def get_presets():
+    return jsonify(STREAM_PRESETS)
 
 @app.route('/api/stream/start', methods=['POST'])
 def start_stream():
